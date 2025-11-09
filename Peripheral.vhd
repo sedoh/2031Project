@@ -10,7 +10,7 @@ entity modulus_peripheral is
         data_out   : out unsigned(15 downto 0); -- data the peripheral reads back to CPU during a read
         mem_read, mem_write : in std_logic; -- tells peripheral whether CPU is reading or writing to memory
         done       : out std_logic -- high if operation is done
-		  reset      : in  std_logic 
+		  resetn      : in  std_logic 
     );
 end modulus_peripheral;
 
@@ -18,9 +18,9 @@ architecture perif_process of modulus_peripheral is
 	 signal a, b, result : unsigned(15 downto 0); -- registers for mod operation and result (a mod b = result)
     signal start        : std_logic := '0'; -- trigger for mod operation
 begin
-    process(clk, reset)
+    process(clk, resetn)
     begin
-        if reset = '1' then
+        if resetn = '0' then
 				a <= (others => '0'); 
             b <= (others => '0');
             result <= (others => '0');
@@ -56,7 +56,7 @@ begin
 						 when others => data_out <= (others => '0'); -- default output when address is not mapped
 					end case;
 			  else
-					data_out <= (others => '0'); -- no read operation, clear the output bus
+					data_out <= (others => 'Z'); -- tristate when not being read
 			  end if;
     end process;
 end perif_process;
