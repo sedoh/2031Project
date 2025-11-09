@@ -1,6 +1,6 @@
 # Peripheral for SCOMP Processor - ECE 2031 Project
 
-## Modulus: A mod b = Result 
+## Modulus: A mod B = Result 
 ***A Operand (address 0xF0), Write***<br />
 a[15:0] register takes in data written to the peripheral from the processor representing the A operand of the mod operation. 
 
