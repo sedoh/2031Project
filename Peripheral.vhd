@@ -5,12 +5,12 @@ use ieee.numeric_std.all;
 entity modulus_peripheral is
     port(
         clk     	 : in  std_logic;
-		  address 	 : in  unsigned(7 downto 0) -- memory address being accessed by the CPU
+		  address 	 : in  unsigned(7 downto 0); -- memory address being accessed by the CPU
         data_in    : in unsigned(15 downto 0); -- data CPU is writing to peripheral
         data_out   : out unsigned(15 downto 0); -- data the peripheral reads back to CPU during a read
         mem_read, mem_write : in std_logic; -- tells peripheral whether CPU is reading or writing to memory
-        done       : out std_logic -- high if operation is done
-		  resetn      : in  std_logic 
+        done       : buffer std_logic; -- high if operation is done
+		  resetn      : in  std_logic
     );
 end modulus_peripheral;
 
@@ -33,7 +33,7 @@ begin
 					   when x"F1" => b <= data_in; -- 0xF1 - b input
 					   when x"F2" => start <= '1'; -- 0xF2 - start signal
 					   when others => null;
-					end case
+					end case;
 				else
 					start <= '0'; -- reset start when not writing
             end if;
