@@ -4,13 +4,13 @@ use ieee.numeric_std.all;
 
 entity integer_division_peripheral is
     port(
-        clk     	          : in  std_logic;
-		    address 	          : in  unsigned(7 downto 0) -- memory address being accessed by the CPU
+        clk     	        : in  std_logic;
+		address 	        : in  unsigned(7 downto 0) -- memory address being accessed by the CPU
         data_in             : in unsigned(15 downto 0); -- data CPU is writing to peripheral
         data_out            : out unsigned(15 downto 0); -- data the peripheral reads back to CPU during a read
         mem_read, mem_write : in std_logic; -- tells peripheral whether CPU is reading or writing to memory
         done                : out std_logic -- high if operation is done
-		    resetn              : in  std_logic 
+		resetn              : in  std_logic 
     );
 end integer_division_peripheral;
 
@@ -30,10 +30,9 @@ architecture rtl of integer_division_peripheral is
     signal reg_remainder    : unsigned(15 downto 0) := (others => '0'); -- Remainder
 
     -- Non-restoring division working registers
-    constant N_BITS         : integer := 16;
-    signal pr_reg           : signed(N_BITS downto 0) := (others => '0');
-    signal q_reg            : unsigned(N_BITS-1 downto 0) := (others => '0');
-    signal v_ext            : signed(N_BITS downto 0) := (others => '0');
+    signal pr_reg           : signed(16 downto 0) := (others => '0');
+    signal q_reg            : unsigned(15 downto 0) := (others => '0');
+    signal v_ext            : signed(16 downto 0) := (others => '0');
     signal step_count       : unsigned(4 downto 0)  := (others => '0');
 
     -- States
@@ -48,8 +47,8 @@ architecture rtl of integer_division_peripheral is
     signal state            : state_t := IDLE;
 
     -- Intermediate signals
-    signal pr_minus_v : signed(N_BITS downto 0);
-    signal pr_plus_v  : signed(N_BITS downto 0);
+    signal pr_minus_v : signed(16 downto 0);
+    signal pr_plus_v  : signed(16 downto 0);
 
 begin
     -- Combinational logic for next PR values
@@ -104,7 +103,7 @@ begin
                     else
                         pr_reg      <= (others => '0');
                         q_reg       <= reg_a;
-                        step_count  <= to_unsigned(N_BITS, step_count'length);
+                        step_count  <= to_unsigned(16, step_count'length);
                         state       <= CALCULATE;
                     end if;
 
@@ -144,7 +143,7 @@ begin
 
                 when FINISH =>
                     reg_result      <= q_reg;
-                    reg_remainder   <= unsigned(pr_reg(N_BITS-1 downto 0));
+                    reg_remainder   <= unsigned(pr_reg(15 downto 0));
                     reg_done        <= '1';
                     state           <= HOLD_DONE;
 
