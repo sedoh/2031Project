@@ -37,7 +37,7 @@ architecture a of SCOMP is
 		ex_and, ex_or, ex_xor, ex_shift,
 		ex_jump, ex_jneg, ex_jzero,
 		ex_return, ex_call,
-		ex_in, ex_in2, ex_out, ex_out2, ex_jpos, ex_jnz, ex_mod
+		ex_in, ex_in2, ex_out, ex_out2, ex_jpos, ex_jnz
 	);
 
 	-- custom type for the call stack
@@ -60,9 +60,33 @@ architecture a of SCOMP is
 	-- define internal signals
 	signal IO_ADDR_internal : std_logic_vector(10 downto 0);
 	signal IO_READ_internal  : std_logic;
-    signal IO_WRITE_internal : std_logic;
+   signal IO_WRITE_internal : std_logic;
 	-- component declaration for modulus peripheral
 	component modulus_peripheral is
+		 port(
+			  clk      : in  std_logic;
+			  address  : in  unsigned(7 downto 0);
+			  data_in  : in  unsigned(15 downto 0);
+			  data_out : out unsigned(15 downto 0);
+			  mem_read, mem_write : in std_logic;
+			  done     : out std_logic;
+			  resetn   : in  std_logic
+		 );
+	end component;
+	
+	component id_peripheral is
+		 port(
+			  clk      : in  std_logic;
+			  address  : in  unsigned(7 downto 0);
+			  data_in  : in  unsigned(15 downto 0);
+			  data_out : out unsigned(15 downto 0);
+			  mem_read, mem_write : in std_logic;
+			  done     : out std_logic;
+			  resetn   : in  std_logic
+		 );
+	end component;
+	
+	component gcd_peripheral is
 		 port(
 			  clk      : in  std_logic;
 			  address  : in  unsigned(7 downto 0);
@@ -77,6 +101,11 @@ architecture a of SCOMP is
 	-- signals for peripheral interface
 	signal mod_data_out : unsigned(15 downto 0);
 	signal mod_done     : std_logic;
+	signal id_data_out : unsigned(15 downto 0);
+	signal id_done     : std_logic;
+	signal gcd_data_out : unsigned(15 downto 0);
+	signal gcd_done     : std_logic;
+	
 
 begin
 	-- use altsyncram component for unified program and data 
@@ -86,7 +115,7 @@ begin
 		numwords_a => 2048,
 		widthad_a => 11,
 		width_a => 16,
-		init_file => "lab8.mif",
+		init_file => "demo.mif",
 		clock_enable_output_a => "BYPASS",
 		lpm_hint => "ENABLE_RUNTIME_MOD=NO",
 		intended_device_family => "CYCLONE V",
