@@ -35,9 +35,9 @@ begin
         elsif rising_edge(clk) then 
             if mem_write = '1' then -- check if CPU is writing to peripheral 
 					case address is -- if yes, determine the register to write to
-						when x"F0" => a <= data_in; -- 0xF0 - a input
-					   when x"F1" => b <= data_in; -- 0xF1 - b input
-					   when x"F2" => start <= '1'; -- 0xF2 - start signal
+						when x"95" => a <= data_in; -- 0x95 - a input
+					   when x"96" => b <= data_in; -- 0x96 - b input
+					   when x"97" => start <= '1'; -- 0x97 - start signal
 					   when others => null;
 					end case;
 				else
@@ -65,8 +65,8 @@ begin
 		 begin
 			  if mem_read = '1' then -- check if CPU is reading from peripheral
 					case address is -- if yes, check the address its reading from
-						 when x"F3" => data_out <= result; -- 0xF3 - result
-						 when x"F4" => data_out <= (15 downto 2 => '0') & error & done_internal; -- 0xF4 - status of function (if done or not)
+						 when x"98" => data_out <= result; -- 0x98 - result
+						 when x"99" => data_out <= (15 downto 2 => '0') & error & done_internal; -- 0x99 - status of function (if done or not)
 						 when others => data_out <= (others => '0'); -- default output when address is not mapped
 					end case;
 			  else
