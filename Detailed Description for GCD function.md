@@ -100,31 +100,29 @@
 
 ###### | -------- | ------------- | ------------ | ------------------------------------ |
 
-###### | \*\*0xE0\*\* | \*\*A operand\*\* | a\[15:0]      | First operand for GCD                |
+###### | \*\*0x90\*\* | \*\*A operand\*\* | a\[15:0]      | First operand for GCD                |
 
-###### | \*\*0xE1\*\* | \*\*B operand\*\* | b\[15:0]      | Second operand for GCD               |
+###### | \*\*0x91\*\* | \*\*B operand\*\* | b\[15:0]      | Second operand for GCD               |
 
-###### | \*\*0xE2\*\* | \*\*Start\*\*     | start\[0]     | Writing 1 starts GCD operation       |
+###### | \*\*0x92\*\* | \*\*Start\*\*     | start\[0]     | Writing 1 starts GCD operation       |
 
-###### | \*\*0xE3\*\* | \*\*Result\*\*    | result\[15:0] | Contains the result of the operation |
+###### | \*\*0x93\*\* | \*\*Result\*\*    | result\[15:0] | Contains the result of the operation |
 
-###### | \*\*0xE4\*\* | \*\*Done\*\*      | done\[0]      | 1 if done, 0 if still busy           |
+###### | \*\*0x94\*\* | \*\*Done\*\*      | done\[0]      | 1 if done, 0 if still busy           |
 
 
 
 ###### **Suggest Mapping in ASM:**
 
-**GCD\_A       .FILL 0x00E0**
+**GCD\_A       .FILL 0x0090**
 
-**GCD\_B       .FILL 0x00E1**
+**GCD\_B       .FILL 0x0091**
 
-**GCD\_START   .FILL 0x00E2**
+**GCD\_START   .FILL 0x0092**
 
-**GCD\_RESULT  .FILL 0x00E3**
+**GCD\_RESULT  .FILL 0x0093**
 
-**GCD\_DONE    .FILL 0x00E4**
-
-
+**GCD\_DONE    .FILL 0x0094**
 
 ###### 
 

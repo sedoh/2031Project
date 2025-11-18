@@ -8,20 +8,20 @@ entity gcd2_peripheral is
         address    : in  unsigned(7 downto 0);      -- CPU address (low byte)
         data_in    : in  unsigned(15 downto 0);     -- CPU write data
         data_out   : out unsigned(15 downto 0);     -- CPU read data
-        mem_read   : in  std_logic;                  -- CPU is reading
-        mem_write  : in  std_logic;                  -- CPU is writing
-        done       : out std_logic;                  -- high when finished
-        resetn     : in  std_logic                   -- active-low reset
+        mem_read   : in  std_logic;                 -- CPU is reading
+        mem_write  : in  std_logic;                 -- CPU is writing
+        done       : out std_logic;                 -- high when finished
+        resetn     : in  std_logic                  -- active-low reset
     );
 end gcd2_peripheral;
 
 architecture rtl of gcd2_peripheral is
-    -- Address map (match your Mod style; unique base)
-    constant A_ADDR     : unsigned(7 downto 0) := x"E0";
-    constant B_ADDR     : unsigned(7 downto 0) := x"E1";
-    constant START_ADDR : unsigned(7 downto 0) := x"E2";
-    constant RES_ADDR   : unsigned(7 downto 0) := x"E3";
-    constant DONE_ADDR  : unsigned(7 downto 0) := x"E4";
+    -- NEW address map in 0x90–0x9F window
+    constant A_ADDR     : unsigned(7 downto 0) := x"90";
+    constant B_ADDR     : unsigned(7 downto 0) := x"91";
+    constant START_ADDR : unsigned(7 downto 0) := x"92";
+    constant RES_ADDR   : unsigned(7 downto 0) := x"93";
+    constant DONE_ADDR  : unsigned(7 downto 0) := x"94";
 
     -- MMIO registers
     signal reg_a, reg_b   : unsigned(15 downto 0) := (others => '0');
@@ -39,6 +39,7 @@ architecture rtl of gcd2_peripheral is
     signal shift_cnt      : unsigned(4 downto 0)  := (others => '0'); -- 0..16
 begin
     -------------------------------------------------------------------------
+    -- WRITE side (capture operands / start)
     -------------------------------------------------------------------------
     process(clk, resetn)
     begin
@@ -60,7 +61,7 @@ begin
                 if address = START_ADDR then start_req <= data_in(0); end if;
             end if;
 
-            -- Clear DONE when CPU reads DONE register (same style as Mod)
+            -- Reading DONE clears it (mirrors your Modulus style)
             if mem_read = '1' and address = DONE_ADDR then
                 reg_done <= '0';
             end if;
@@ -137,7 +138,7 @@ begin
                     st <= HOLD_DONE;
 
                 when HOLD_DONE =>
-                    -- Hold DONE high until CPU reads DONE register
+                    -- Hold DONE high until CPU reads DONE (which clears it)
                     if reg_done = '0' then
                         st <= IDLE;
                     end if;
@@ -149,6 +150,7 @@ begin
     end process;
 
     -------------------------------------------------------------------------
+    -- READ mux (tri-state when not selected), mirrors Modulus style
     -------------------------------------------------------------------------
     process(address, mem_read, reg_a, reg_b, reg_result, reg_done)
     begin
@@ -156,7 +158,7 @@ begin
             case address is
                 when A_ADDR     => data_out <= reg_a;
                 when B_ADDR     => data_out <= reg_b;
-                when START_ADDR => data_out <= (15 downto 1 => '0') & '0'; -- optional readback
+                when START_ADDR => data_out <= (others => '0'); -- optional readback
                 when RES_ADDR   => data_out <= reg_result;
                 when DONE_ADDR  => data_out <= (15 downto 1 => '0') & reg_done;
                 when others     => data_out <= (others => '0');
