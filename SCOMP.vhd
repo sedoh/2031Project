@@ -126,7 +126,7 @@ begin
 
 	process(IO_READ_internal, IO_ADDR_internal, mod_data_out, AC, io_drive_en)
 	begin
-		 if IO_READ_internal = '1' and IO_ADDR_internal(7 downto 4) = "1111" then
+		 if IO_READ_internal = '1' and IO_ADDR_internal(7 downto 4) = "1001" then
 			  -- peripheral is being read (addresses 0xF0-0xFF)
 			  IO_DATA <= std_logic_vector(mod_data_out);
 		 elsif io_drive_en = '1' then
