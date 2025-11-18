@@ -5,22 +5,22 @@ use ieee.numeric_std.all;
 entity integer_division_peripheral is
     port(
         clk     	        : in  std_logic;
-		address 	        : in  unsigned(7 downto 0) -- memory address being accessed by the CPU
+		address 	        : in  unsigned(7 downto 0); -- memory address being accessed by the CPU
         data_in             : in unsigned(15 downto 0); -- data CPU is writing to peripheral
         data_out            : out unsigned(15 downto 0); -- data the peripheral reads back to CPU during a read
         mem_read, mem_write : in std_logic; -- tells peripheral whether CPU is reading or writing to memory
-        done                : out std_logic -- high if operation is done
+        done                : out std_logic; -- high if operation is done
 		resetn              : in  std_logic 
     );
 end integer_division_peripheral;
 
 architecture rtl of integer_division_peripheral is
     -- Address map
-    constant A_ADDR     : unsigned(7 downto 0) := x"90"; -- Write: Dividend (D)
-    constant B_ADDR     : unsigned(7 downto 0) := x"91"; -- Write: Divisor (V)
-    constant START_ADDR : unsigned(7 downto 0) := x"92"; -- Write: Start command
-    constant RES_ADDR   : unsigned(7 downto 0) := x"93"; -- Read: Quotient (Q)
-    constant DONE_ADDR  : unsigned(7 downto 0) := x"94"; -- Read: Remainder (R) / Clear Done
+    constant A_ADDR     : unsigned(7 downto 0) := x"9A"; -- Write: Dividend (D)
+    constant B_ADDR     : unsigned(7 downto 0) := x"9B"; -- Write: Divisor (V)
+    constant START_ADDR : unsigned(7 downto 0) := x"9C"; -- Write: Start command
+    constant RES_ADDR   : unsigned(7 downto 0) := x"9D"; -- Read: Quotient (Q)
+    constant DONE_ADDR  : unsigned(7 downto 0) := x"9E"; -- Read: Remainder (R) / Clear Done
 
     -- Registers
     signal reg_a, reg_b     : unsigned(15 downto 0) := (others => '0'); -- Dividend, divisor
@@ -84,7 +84,7 @@ begin
             end if;
 
             -- Consume START
-            if (st = IDLE) and (start_req = '1') then
+            if (state = IDLE) and (start_req = '1') then
                 start_req <= '0';
                 reg_done  <= '0';
                 state     <= INIT_OP;
