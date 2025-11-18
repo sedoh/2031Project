@@ -11,8 +11,7 @@ use lpm.lpm_components.all;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_unsigned.all;
 use ieee.std_logic_arith.all;
-
-
+	 
 entity SCOMP is
 	port(
 		clock     : in      std_logic;
@@ -38,7 +37,7 @@ architecture a of SCOMP is
 		ex_and, ex_or, ex_xor, ex_shift,
 		ex_jump, ex_jneg, ex_jzero,
 		ex_return, ex_call,
-		ex_in, ex_in2, ex_out, ex_out2, ex_jpos, ex_jnz
+		ex_in, ex_in2, ex_out, ex_out2, ex_jpos, ex_jnz, ex_mod
 	);
 
 	-- custom type for the call stack
@@ -57,6 +56,27 @@ architecture a of SCOMP is
 	signal operand       :  std_logic_vector(10 downto 0);
 	signal MW            :  std_logic;
 	signal io_drive_en   :  std_logic;
+	
+	-- define internal signals
+	signal IO_ADDR_internal : std_logic_vector(10 downto 0);
+	signal IO_READ_internal  : std_logic;
+    signal IO_WRITE_internal : std_logic;
+	-- component declaration for modulus peripheral
+	component modulus_peripheral is
+		 port(
+			  clk      : in  std_logic;
+			  address  : in  unsigned(7 downto 0);
+			  data_in  : in  unsigned(15 downto 0);
+			  data_out : out unsigned(15 downto 0);
+			  mem_read, mem_write : in std_logic;
+			  done     : out std_logic;
+			  resetn   : in  std_logic
+		 );
+	end component;
+
+	-- signals for peripheral interface
+	signal mod_data_out : unsigned(15 downto 0);
+	signal mod_done     : std_logic;
 
 begin
 	-- use altsyncram component for unified program and data 
@@ -86,6 +106,36 @@ begin
 		data_a    => AC,
 		q_a       => mem_data
 	);
+	
+	-- connect internal signals to output port
+	IO_ADDR <= IO_ADDR_internal;
+    IO_READ  <= IO_READ_internal;
+    IO_WRITE <= IO_WRITE_internal;
+	-- modulus peripheral instance
+	mod_periph: modulus_peripheral
+	port map(
+		 clk      => clock,
+		 address  => unsigned(IO_ADDR_internal(7 downto 0)),
+		 data_in  => unsigned(IO_DATA),
+		 data_out => mod_data_out,
+		 mem_read => IO_READ_internal,
+		 mem_write => IO_WRITE_internal,
+		 done     => mod_done,
+		 resetn   => resetn
+	);
+
+	process(IO_READ_internal, IO_ADDR_internal, mod_data_out, AC, io_drive_en)
+	begin
+		 if IO_READ_internal = '1' and IO_ADDR_internal(7 downto 4) = "1111" then
+			  -- peripheral is being read (addresses 0xF0-0xFF)
+			  IO_DATA <= std_logic_vector(mod_data_out);
+		 elsif io_drive_en = '1' then
+			  -- CPU is writing
+			  IO_DATA <= AC;
+		 else
+			  IO_DATA <= (others => 'Z'); -- else tri-stated
+		 end if;
+	end process;
 
 	-- use Intel IP to shift AC for shift instruction
 	shifter: lpm_clshift
@@ -123,7 +173,7 @@ begin
 	);
 
 	-- IR has the IO address during INs and OUTs
-	IO_ADDR  <= IR(10 downto 0);
+	IO_ADDR_internal <= IR(10 downto 0);
 
 	process (clock, resetn)
 	begin
@@ -281,20 +331,20 @@ begin
 					state       <= fetch;
 
 				when ex_in =>
-					IO_READ <= '1';  -- instruct peripheral to drive bus
+					IO_READ_internal <= '1';  -- instruct peripheral to drive bus
 					state <= ex_in2;
 
 				when ex_in2 =>
-					IO_READ <= '0';
+					IO_READ_internal <= '0';
 					AC <= IO_DATA;   -- latch in data from peripheral
 					state <= fetch;
 
 				when ex_out =>
-					IO_WRITE <= '1'; -- tell peripheral that data is present
+					IO_WRITE_internal <= '1'; -- tell peripheral that data is present
 					state <= ex_out2;
 
 				when ex_out2 =>
-					IO_WRITE <= '0';
+					IO_WRITE_internal <= '0';
 					state <= fetch;
 
 				when others =>
@@ -313,6 +363,3 @@ begin
 	dbg_MD    <= mem_data;
 
 end a;
-
-
-
