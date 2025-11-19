@@ -198,9 +198,12 @@ begin
                 when DONE_ADDR   => data_out <= reg_remainder; -- Remainder
                 when others      => data_out <= (others => '0');
             end case;
+		else
+			data_out <= (others => 'Z'); -- tri-state when not being read
         end if;
     end process;
 
     done <= reg_done;
 
 end rtl;
+
