@@ -79,7 +79,7 @@ begin
 							reg_b <= data_in;
 					 end if;
                 if address = START_ADDR then
-							start_req <= data_in(0);
+							start_req <= '1';
 					 end if;
             end if;
 
@@ -204,4 +204,3 @@ begin
     done <= reg_done;
 
 end rtl;
-
