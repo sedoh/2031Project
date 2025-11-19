@@ -14,7 +14,7 @@ entity integer_division_peripheral is
     );
 end integer_division_peripheral;
 
-architecture rtl of integer_division_module_test is
+architecture rtl of integer_division_peripheral is
     -- Address map
     constant A_ADDR     : unsigned(7 downto 0) := x"9A"; -- Write: Dividend (D)
     constant B_ADDR     : unsigned(7 downto 0) := x"9B"; -- Write: Divisor (V)
@@ -204,3 +204,4 @@ begin
     done <= reg_done;
 
 end rtl;
+
