@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity gcd2_peripheral is
+entity gcd_peripheral is
     port(
         clk        : in  std_logic;
         address    : in  unsigned(7 downto 0);      -- CPU address (low byte)
@@ -13,9 +13,9 @@ entity gcd2_peripheral is
         done       : out std_logic;                 -- high when finished
         resetn     : in  std_logic                  -- active-low reset
     );
-end gcd2_peripheral;
+end gcd_peripheral;
 
-architecture rtl of gcd2_peripheral is
+architecture rtl of gcd_peripheral is
     -- NEW address map in 0x90–0x9F window
     constant A_ADDR     : unsigned(7 downto 0) := x"90";
     constant B_ADDR     : unsigned(7 downto 0) := x"91";
@@ -38,9 +38,7 @@ architecture rtl of gcd2_peripheral is
     signal a_w, b_w       : unsigned(15 downto 0) := (others => '0');
     signal shift_cnt      : unsigned(4 downto 0)  := (others => '0'); -- 0..16
 begin
-    -------------------------------------------------------------------------
-    -- WRITE side (capture operands / start)
-    -------------------------------------------------------------------------
+	 -- Main sequential logic block
     process(clk, resetn)
     begin
         if resetn = '0' then
@@ -61,7 +59,7 @@ begin
                 if address = START_ADDR then start_req <= data_in(0); end if;
             end if;
 
-            -- Reading DONE clears it (mirrors your Modulus style)
+            -- Reading DONE clears it
             if mem_read = '1' and address = DONE_ADDR then
                 reg_done <= '0';
             end if;
@@ -138,7 +136,7 @@ begin
                     st <= HOLD_DONE;
 
                 when HOLD_DONE =>
-                    -- Hold DONE high until CPU reads DONE (which clears it)
+                    -- Hold DONE high until CPU reads DONE and clears it
                     if reg_done = '0' then
                         st <= IDLE;
                     end if;
@@ -149,9 +147,7 @@ begin
         end if;
     end process;
 
-    -------------------------------------------------------------------------
-    -- READ mux (tri-state when not selected), mirrors Modulus style
-    -------------------------------------------------------------------------
+    -- Main combinational logic block
     process(address, mem_read, reg_a, reg_b, reg_result, reg_done)
     begin
         if mem_read = '1' then
@@ -168,6 +164,6 @@ begin
         end if;
     end process;
 
-    -- External DONE port
     done <= reg_done;
+	 
 end rtl;
