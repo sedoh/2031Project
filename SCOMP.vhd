@@ -58,40 +58,43 @@ architecture a of SCOMP is
 	signal io_drive_en   :  std_logic;
 	
 	-- define internal signals
-	signal IO_ADDR_internal : std_logic_vector(10 downto 0);
+	signal IO_ADDR_internal  : std_logic_vector(10 downto 0);
 	signal IO_READ_internal  : std_logic;
    signal IO_WRITE_internal : std_logic;
+	
 	-- component declaration for modulus peripheral
 	component modulus_peripheral is
 		 port(
 			  clk      : in  std_logic;
-			  address  : in  unsigned(7 downto 0);
-			  data_in  : in  unsigned(15 downto 0);
-			  data_out : out unsigned(15 downto 0);
+			  address  : in  std_logic_vector(7 downto 0);
+			  data_in  : in  std_logic_vector(15 downto 0);
+			  data_out : out std_logic_vector(15 downto 0);
 			  mem_read, mem_write : in std_logic;
 			  done     : out std_logic;
 			  resetn   : in  std_logic
 		 );
 	end component;
 	
-	component id_peripheral is
+	-- component declaration for integer division peripheral
+	component integer_division_peripheral is
 		 port(
 			  clk      : in  std_logic;
-			  address  : in  unsigned(7 downto 0);
-			  data_in  : in  unsigned(15 downto 0);
-			  data_out : out unsigned(15 downto 0);
+			  address  : in  std_logic_vector(7 downto 0);
+			  data_in  : in  std_logic_vector(15 downto 0);
+			  data_out : out std_logic_vector(15 downto 0);
 			  mem_read, mem_write : in std_logic;
 			  done     : out std_logic;
 			  resetn   : in  std_logic
 		 );
 	end component;
 	
+	-- component declaration for gcd peripheral
 	component gcd_peripheral is
 		 port(
 			  clk      : in  std_logic;
-			  address  : in  unsigned(7 downto 0);
-			  data_in  : in  unsigned(15 downto 0);
-			  data_out : out unsigned(15 downto 0);
+			  address  : in  std_logic_vector(7 downto 0);
+			  data_in  : in  std_logic_vector(15 downto 0);
+			  data_out : out std_logic_vector(15 downto 0);
 			  mem_read, mem_write : in std_logic;
 			  done     : out std_logic;
 			  resetn   : in  std_logic
@@ -99,17 +102,100 @@ architecture a of SCOMP is
 	end component;
 
 	-- signals for peripheral interface
-	signal mod_data_out : unsigned(15 downto 0);
+	signal mod_data_out : std_logic_vector(15 downto 0);
 	signal mod_done     : std_logic;
-	signal id_data_out : unsigned(15 downto 0);
-	signal id_done     : std_logic;
-	signal gcd_data_out : unsigned(15 downto 0);
+	signal id_data_out  : std_logic_vector(15 downto 0);
+	signal id_done      : std_logic;
+	signal gcd_data_out : std_logic_vector(15 downto 0);
 	signal gcd_done     : std_logic;
 	
+	-- signal to hold the selected peripheral's output data
+	signal peripheral_data_out : std_logic_vector(15 downto 0);
+	
+   -- signal representing the 8-bit I/O address for decoding
+   signal io_addr_8bit : std_logic_vector(7 downto 0);
+	
+	-- signal representing whether peripheral I/O is active
+	signal peripheral_io_active : std_logic;
 
 begin
-	-- use altsyncram component for unified program and data 
+	-- address conversion
+	io_addr_8bit <= IO_ADDR_internal(7 downto 0);
 	
+	-- connect internal signals to output port
+	IO_ADDR <= IO_ADDR_internal;
+   IO_READ  <= IO_READ_internal;
+   IO_WRITE <= IO_WRITE_internal;
+	
+	-- gcd peripheral (addresses 0x90 - 0x94)
+	gcd_periph: gcd_peripheral
+	port map(
+		 clk       => clock,
+		 address   => io_addr_8bit,
+		 data_in   => IO_DATA,
+		 data_out  => gcd_data_out,
+		 mem_read  => IO_READ_internal,
+		 mem_write => IO_WRITE_internal,
+		 done      => gcd_done,
+		 resetn    => resetn
+	);
+	
+	-- modulus peripheral (addresses 0x95 - 0x99)
+	mod_periph: modulus_peripheral
+	port map(
+		 clk       => clock,
+		 address   => io_addr_8bit,
+		 data_in   => IO_DATA,
+		 data_out  => mod_data_out,
+		 mem_read  => IO_READ_internal,
+		 mem_write => IO_WRITE_internal,
+		 done      => mod_done,
+		 resetn    => resetn
+	);
+	
+	-- integer division peripheral (addressses 0x9A - 0x9E)
+	id_periph: integer_division_peripheral
+	port map(
+		 clk       => clock,
+		 address   => io_addr_8bit,
+		 data_in   => IO_DATA,
+		 data_out  => id_data_out,
+		 mem_read  => IO_READ_internal,
+		 mem_write => IO_WRITE_internal,
+		 done      => id_done,
+		 resetn    => resetn
+	);
+	
+	-- Data MUX
+	with io_addr_8bit select peripheral_data_out <=
+		-- gcd address range (0x90 to 0x94)
+        gcd_data_out when x"90" | x"91" | x"92" | x"93" | x"94", 
+		-- modulus address range (0x95 to 0x99)
+        mod_data_out when x"95" | x"96" | x"97" | x"98" | x"99", 
+		-- integer division address range (0x9A to 0x9E)
+        id_data_out when x"9A" | x"9B" | x"9C" | x"9D" | x"9E", 
+		-- default (all other addresses)
+		(others => '0') when others;
+	
+	-- Check for peripheral I/O Block (addresses 0x90 to 0x9F)
+   peripheral_io_active <= '1' when IO_ADDR_internal(7 downto 4) = "1001" else '0';
+	
+	process(IO_READ_internal, peripheral_io_active, peripheral_data_out, AC, io_drive_en)
+	begin
+      -- Default tri-stated
+      IO_DATA <= (others => 'Z');
+		
+        -- Check if we are reading from the peripheral block
+		if IO_READ_internal = '1' and peripheral_io_active = '1' then
+			-- CPU is reading from a peripheral
+			IO_DATA <= std_logic_vector(peripheral_data_out);
+		elsif io_drive_en = '1' then
+			-- CPU is writing data (OUT instruction)
+			IO_DATA <= AC;
+		end if;
+	end process;
+
+	-- use altsyncram component for unified program and data 
 	altsyncram_component : altsyncram
 	GENERIC MAP (
 		numwords_a => 2048,
@@ -135,36 +221,6 @@ begin
 		data_a    => AC,
 		q_a       => mem_data
 	);
-	
-	-- connect internal signals to output port
-	IO_ADDR <= IO_ADDR_internal;
-    IO_READ  <= IO_READ_internal;
-    IO_WRITE <= IO_WRITE_internal;
-	-- modulus peripheral instance
-	mod_periph: modulus_peripheral
-	port map(
-		 clk      => clock,
-		 address  => unsigned(IO_ADDR_internal(7 downto 0)),
-		 data_in  => unsigned(IO_DATA),
-		 data_out => mod_data_out,
-		 mem_read => IO_READ_internal,
-		 mem_write => IO_WRITE_internal,
-		 done     => mod_done,
-		 resetn   => resetn
-	);
-
-	process(IO_READ_internal, IO_ADDR_internal, mod_data_out, AC, io_drive_en)
-	begin
-		 if IO_READ_internal = '1' and IO_ADDR_internal(7 downto 4) = "1001" then
-			  -- peripheral is being read (addresses 0xF0-0xFF)
-			  IO_DATA <= std_logic_vector(mod_data_out);
-		 elsif io_drive_en = '1' then
-			  -- CPU is writing
-			  IO_DATA <= AC;
-		 else
-			  IO_DATA <= (others => 'Z'); -- else tri-stated
-		 end if;
-	end process;
 
 	-- use Intel IP to shift AC for shift instruction
 	shifter: lpm_clshift
