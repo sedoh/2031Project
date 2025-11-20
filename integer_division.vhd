@@ -27,7 +27,6 @@ architecture rtl of integer_division_peripheral is
     signal reg_result       : unsigned(15 downto 0) := (others => '0'); -- Quotient
     signal reg_done         : std_logic := '0';
     signal start_req        : std_logic := '0';
-    signal reg_remainder    : unsigned(15 downto 0) := (others => '0'); -- Remainder
 
     -- Non-restoring division working registers
     signal pr_reg           : signed(16 downto 0) := (others => '0');
@@ -62,7 +61,6 @@ begin
             reg_a           <= (others => '0');
             reg_b           <= (others => '0');
             reg_result      <= (others => '0');
-            reg_remainder   <= (others => '0');
             reg_done        <= '0';
             start_req       <= '0';
             pr_reg          <= (others => '0');
@@ -105,7 +103,6 @@ begin
                 when INIT_OP =>
                     if reg_b = 0 then
                         reg_result      <= (others => '1');
-                        reg_remainder   <= reg_a;
 								reg_done        <= '1';
                         state           <= HOLD_DONE;
                     else
@@ -166,7 +163,6 @@ begin
 				    -- Finish division
                 when FINISH =>
                     reg_result      <= q_reg;
-                    reg_remainder   <= unsigned(pr_reg(15 downto 0));
                     reg_done        <= '1';
                     state           <= HOLD_DONE;
 
@@ -185,7 +181,7 @@ begin
     end process;
 
     -- Main combinational logic process
-    process(address, mem_read, reg_a, reg_b, reg_result, reg_remainder)
+    process(address, mem_read, reg_a, reg_b, reg_result, reg_done)
     begin
         data_out <= (others => 'Z');
 
@@ -193,17 +189,16 @@ begin
             case address is
                 when A_ADDR      => data_out <= reg_a; -- Dividend
                 when B_ADDR      => data_out <= reg_b; -- Divisor
-                when START_ADDR  => data_out <= (others => '0'); -- Control
+                when START_ADDR  => data_out <= (others => '0'); -- Start
                 when RES_ADDR    => data_out <= reg_result; -- Quotient
-                when DONE_ADDR   => data_out <= reg_remainder; -- Remainder
+                when DONE_ADDR   => data_out <= (15 downto 1 => '0') & reg_done;
                 when others      => data_out <= (others => '0');
             end case;
-		else
-			data_out <= (others => 'Z'); -- tri-state when not being read
+		  else
+				data_out <= (others => 'Z'); -- tri-state when not being read
         end if;
     end process;
 
     done <= reg_done;
 
 end rtl;
-
