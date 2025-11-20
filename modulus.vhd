@@ -16,18 +16,17 @@ end modulus_peripheral;
 
 architecture rtl of modulus_peripheral is
     -- Address map
-    constant A_ADDR     : unsigned(7 downto 0) := x"9A"; -- Write: Dividend (D)
-    constant B_ADDR     : unsigned(7 downto 0) := x"9B"; -- Write: Divisor (V)
-    constant START_ADDR : unsigned(7 downto 0) := x"9C"; -- Write: Start command
-    constant RES_ADDR   : unsigned(7 downto 0) := x"9D"; -- Read: Modulus
-    constant DONE_ADDR  : unsigned(7 downto 0) := x"9E"; -- Read: Remainder (R) / Clear Done
+    constant A_ADDR     : unsigned(7 downto 0) := x"95"; -- Write: Dividend (D)
+    constant B_ADDR     : unsigned(7 downto 0) := x"96"; -- Write: Divisor (V)
+    constant START_ADDR : unsigned(7 downto 0) := x"97"; -- Write: Start command
+    constant RES_ADDR   : unsigned(7 downto 0) := x"98"; -- Read: Modulus
+    constant DONE_ADDR  : unsigned(7 downto 0) := x"99"; -- Read: Remainder (R) / Clear Done
 
     -- General registers
     signal reg_a, reg_b     : unsigned(15 downto 0) := (others => '0'); -- Dividend, divisor
-    signal reg_result       : unsigned(15 downto 0) := (others => '0'); -- Modulus
+    signal reg_result       : unsigned(15 downto 0) := (others => '0'); -- Modulus result
     signal reg_done         : std_logic := '0';
     signal start_req        : std_logic := '0';
-    signal reg_remainder    : unsigned(15 downto 0) := (others => '0'); -- Remainder
 
     -- Non-restoring division working registers
     signal pr_reg           : signed(16 downto 0) := (others => '0');
@@ -62,7 +61,6 @@ begin
             reg_a           <= (others => '0');
             reg_b           <= (others => '0');
             reg_result      <= (others => '0');
-            reg_remainder   <= (others => '0');
             reg_done        <= '0';
             start_req       <= '0';
             pr_reg          <= (others => '0');
@@ -101,11 +99,10 @@ begin
                 when IDLE =>
                     null;
 					 
-				    -- Handle division by 0 and initialize working registers
+				    -- Handle zero-valued modulus and initialize working registers
                 when INIT_OP =>
                     if reg_b = 0 then
                         reg_result      <= reg_a;
-                        reg_remainder   <= reg_a;
 								reg_done        <= '1';
                         state           <= HOLD_DONE;
                     else
@@ -166,7 +163,6 @@ begin
 				    -- Finish division
                 when FINISH =>
                     reg_result      <= unsigned(pr_reg(15 downto 0));
-                    reg_remainder   <= unsigned(pr_reg(15 downto 0));
                     reg_done        <= '1';
                     state           <= HOLD_DONE;
 
@@ -185,7 +181,7 @@ begin
     end process;
 
     -- Main combinational logic process
-    process(address, mem_read, reg_a, reg_b, reg_result, reg_remainder)
+    process(address, mem_read, reg_a, reg_b, reg_result, reg_done)
     begin
         data_out <= (others => 'Z');
 
@@ -193,13 +189,13 @@ begin
             case address is
                 when A_ADDR      => data_out <= reg_a; -- Dividend
                 when B_ADDR      => data_out <= reg_b; -- Divisor
-                when START_ADDR  => data_out <= (others => '0'); -- Control
-                when RES_ADDR    => data_out <= reg_result; -- Modulus
-                when DONE_ADDR   => data_out <= reg_remainder; -- Remainder
+                when START_ADDR  => data_out <= (others => '0'); -- Start
+                when RES_ADDR    => data_out <= reg_result; -- Modulus result/remainder
+                when DONE_ADDR   => data_out <= (15 downto 1 => '0') & reg_done;
                 when others      => data_out <= (others => '0');
             end case;
-		else
-			data_out <= (others => 'Z'); -- tri-state when not being read
+		  else
+				data_out <= (others => 'Z'); -- tri-state when not being read
         end if;
     end process;
 
