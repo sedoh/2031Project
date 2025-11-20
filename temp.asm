@@ -1,12 +1,11 @@
-; DEMO.asm
+; TEMP.asm
 
 ORG 0
 
-	; Get and store the switch values
+    ; Get and store the switch values
     
-	START: 
-    ;CALL DELAY
-    ; IN     Switches
+    START: ;CALL DELAY
+    ;IN Switches
     LOADI 3
     JZERO START
     ADDI -3
@@ -15,16 +14,16 @@ ORG 0
     STORE COMMAND
     LOADI 1
     OUT LEDs
-	TAKE_FIRST: ;CALL DELAY
-    ;IN     Switches
+    TAKE_FIRST: ;CALL DELAY
+    ;IN Switches
     LOADI 40
     JZERO TAKE_FIRST
     STORE op1
     LOADI 2
     OUT LEDs
     TAKE_SECOND: ;CALL DELAY
-    ;IN     Switches
-    LOADI 3
+    ;IN Switches
+    LOADI 6
     JZERO TAKE_SECOND
     STORE op2
     LOADI 3
@@ -41,7 +40,7 @@ ORG 0
     OUT ID_START
     WAIT_ID: IN ID_DONE
     JZERO WAIT_ID
-	IN ID_RESULT
+    IN ID_RESULT
     JUMP DONE
 	 
     RUN_MOD:
@@ -53,7 +52,7 @@ ORG 0
     OUT MOD_START
     WAIT_MOD: IN MOD_DONE
     JZERO WAIT_MOD
-	IN MOD_RESULT
+    IN MOD_RESULT
     JUMP DONE
 	 
     RUN_GCD:
@@ -65,13 +64,10 @@ ORG 0
     OUT GCD_START
     WAIT_GCD: IN GCD_DONE
     JZERO WAIT_GCD
-	IN GCD_RESULT
+    IN GCD_RESULT
 	 
-    DONE:
-    OUT HEX0
+    DONE: OUT HEX0
     FINISH: JUMP FINISH
-    
-
 
 
 
@@ -83,16 +79,16 @@ WaitingLoop:
 	JNEG   WaitingLoop
 	RETURN
 
+
+
 ; Variables
 Pattern:   DW 0
 COMMAND:   DW 0
-op1:	DW 0
-op2:  DW 0
+op1:	   DW 0
+op2:       DW 0
 ; Useful values
 Bit0:      DW &B0000000001
 Bit9:      DW &B1000000000
-
-
 
 mask:	DW 1
 tot:	DW 0
